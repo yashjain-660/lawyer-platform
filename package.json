@@ -1,0 +1,41 @@
+{
+  "name": "lawyer-platform",
+  "version": "1.0.0",
+  "description": "Full-stack lawyer platform with client portal and admin panel",
+  "main": "backend/dist/index.js",
+  "type": "module",
+  "scripts": {
+    "install-all": "npm install && cd frontend && npm install && cd ../admin && npm install && cd ..",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:admin": "cd admin && npm run dev",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:admin": "cd admin && npm run build",
+    "build:all": "npm run build:backend && npm run build:frontend && npm run build:admin",
+    "db:setup": "cd backend && npm run db:setup",
+    "db:migrate": "cd backend && npm run db:migrate",
+    "db:seed": "cd backend && npm run db:seed",
+    "start": "node backend/dist/index.js",
+    "test": "cd backend && npm run test",
+    "lint": "cd backend && npm run lint",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "admin"
+  ],
+  "keywords": [
+    "lawyer",
+    "legal",
+    "platform",
+    "consultation",
+    "SaaS"
+  ],
+  "author": "Legal Platform Team",
+  "license": "MIT"
+}
