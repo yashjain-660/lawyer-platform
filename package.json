@@ -1,41 +1,26 @@
 {
-  "name": "lawyer-platform",
-  "version": "1.0.0",
-  "description": "Full-stack lawyer platform with client portal and admin panel",
-  "main": "backend/dist/index.js",
-  "type": "module",
+  "name": "lawyer-next",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "install-all": "npm install && cd frontend && npm install && cd ../admin && npm install && cd ..",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev:admin": "cd admin && npm run dev",
-    "build:backend": "cd backend && npm run build",
-    "build:frontend": "cd frontend && npm run build",
-    "build:admin": "cd admin && npm run build",
-    "build:all": "npm run build:backend && npm run build:frontend && npm run build:admin",
-    "db:setup": "cd backend && npm run db:setup",
-    "db:migrate": "cd backend && npm run db:migrate",
-    "db:seed": "cd backend && npm run db:seed",
-    "start": "node backend/dist/index.js",
-    "test": "cd backend && npm run test",
-    "lint": "cd backend && npm run lint",
-    "docker:build": "docker-compose build",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
-  "workspaces": [
-    "backend",
-    "frontend",
-    "admin"
-  ],
-  "keywords": [
-    "lawyer",
-    "legal",
-    "platform",
-    "consultation",
-    "SaaS"
-  ],
-  "author": "Legal Platform Team",
-  "license": "MIT"
+  "dependencies": {
+    "react": "^18",
+    "react-dom": "^18",
+    "next": "14.2.15"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.15"
+  }
 }

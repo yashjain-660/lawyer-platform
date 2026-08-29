@@ -1,8 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer from './slices/authSlice';
-import lawyersReducer from './slices/lawyersSlice';
-import consultationReducer from './slices/consultationSlice';
-import uiReducer from './slices/uiSlice';
+import authReducer from './redux/slices/authSlice';
+import lawyersReducer from './redux/slices/lawyersSlice';
+import consultationReducer from './redux/slices/consultationSlice';
+import uiReducer from './redux/slices/uiSlice';
 
 const store = configureStore({
   reducer: {
