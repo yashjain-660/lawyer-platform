@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Balance, Shield, Clock } from "lucide-react";
+import { ArrowRight, Scale, Shield, Clock } from "lucide-react";
 
 export default function Home() {
   return (
@@ -48,7 +48,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {[
-              { icon: Balance, title: "Expert Representation", desc: "Decades of combined experience in complex litigation and corporate law." },
+              { icon: Scale, title: "Expert Representation", desc: "Decades of combined experience in complex litigation and corporate law." },
               { icon: Shield, title: "Unwavering Protection", desc: "We vigorously defend your interests in and out of the courtroom." },
               { icon: Clock, title: "24/7 Availability", desc: "Legal emergencies don't wait for business hours, and neither do we." }
             ].map((feature, i) => (
