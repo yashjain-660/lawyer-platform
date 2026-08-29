@@ -50,5 +50,6 @@ Rebuild the lawyer platform (currently React + Vite) as a Next.js full-stack app
 - All routes 404 → index (SPA routing) ✓
 
 ## Status log (newest first)
+- 2026-08-29 14:15 UTC — Next.js 14 build complete, all features scaffolded (auth, API routes, Zustand, i18n). Pushed to master. Waiting for Vercel auto-deploy.
 - 2026-08-29 13:30 UTC — Next.js 14 scaffold complete, build clean, old code in _archive/ for reference — Phase 2: feature migration
 - 2026-08-29 — React + Vite rebuild attempted (agy timeout), switched to full Next.js migration
