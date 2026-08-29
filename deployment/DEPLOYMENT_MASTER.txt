@@ -1,0 +1,703 @@
+================================================================================
+THE WEB VALE - PRODUCTION DEPLOYMENT MASTER CHECKLIST
+================================================================================
+Version: 1.0.0
+Generated: 2026-08-28
+Status: PRODUCTION READY
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+The Web Vale is a multi-tenant legal services platform designed for easy
+deployment to the Web Vale hosting infrastructure. This master document
+outlines the complete deployment lifecycle from initial setup through
+production operations.
+
+DEPLOYMENT TARGET: thewebvale.com
+DOMAIN PATTERN: [business].thewebvale.com
+EXAMPLE: advocate-legal.thewebvale.com
+
+KEY COMPONENTS:
+✓ Frontend (React SPA) - Port 3000
+✓ Admin Panel (React) - Port 3001
+✓ Backend API (Express.js) - Port 5000
+✓ PostgreSQL Database - Port 5432
+✓ Redis Cache - Port 6379
+✓ Nginx Reverse Proxy - Port 80/443 (SSL/TLS)
+
+================================================================================
+PRE-DEPLOYMENT CHECKLIST
+================================================================================
+
+□ INFRASTRUCTURE REQUIREMENTS
+  □ Server meets minimum specs (4 CPU, 8GB RAM, 100GB SSD)
+  □ OS: Ubuntu 20.04 LTS or later / CentOS 8+
+  □ Docker Engine 20.10+ installed
+  □ Docker Compose 2.0+ installed
+  □ curl, wget, git installed
+  □ SSL certificate available (Let's Encrypt ready)
+
+□ CREDENTIALS & KEYS READY
+  □ JWT Secret (32+ characters, random)
+  □ Session Secret (32+ characters, random)
+  □ Database password (24+ characters, strong)
+  □ Redis password (16+ characters, random)
+  □ SendGrid API key
+  □ Razorpay API keys (Key ID + Secret)
+  □ Stripe API keys (Secret + Publishable)
+  □ AWS S3 credentials
+  □ Admin email address
+  □ Admin password (secure, 24+ characters)
+
+□ DNS CONFIGURATION
+  □ Domain registered (thewebvale.com)
+  □ DNS A record points to server IP
+  □ Wildcard DNS *.thewebvale.com configured
+  □ SPF record configured (for email)
+  □ DKIM record configured (for email)
+  □ DMARC record configured (for email)
+
+□ SECURITY PREPARATION
+  □ Firewall configured (80, 443 open)
+  □ SSH keys configured (not password-based)
+  □ SSL/TLS certificate ready
+  □ Security headers reviewed
+  □ Rate limiting policies reviewed
+  □ CORS origins configured
+  □ API rate limits configured
+
+□ DATABASE PREPARATION
+  □ PostgreSQL backup strategy planned
+  □ Database size estimated
+  □ Index strategy reviewed
+  □ Connection pool settings prepared
+  □ Query optimization completed
+
+□ MONITORING & LOGGING
+  □ Log rotation configured
+  □ Monitoring alerts prepared
+  □ Backup location identified
+  □ Backup retention policy decided
+  □ Error tracking (Sentry) configured
+  □ Uptime monitoring service activated
+
+================================================================================
+PHASE 1: INITIAL SETUP (30 MINUTES)
+================================================================================
+
+STEP 1.1: Clone Repository & Navigate
+─────────────────────────────────────
+$ cd /home/opc/lawyer-platform
+$ git pull origin main
+$ cd deployment
+
+Expected: deployment/ directory with all configuration files present
+
+
+STEP 1.2: Run Setup Script
+──────────────────────────
+$ sudo ./deploy-webvale.sh setup
+
+Expected output:
+✓ Prerequisites check passed
+✓ Directory structure created
+✓ Setup completed successfully
+
+This creates:
+  - Log directories
+  - Backup directories
+  - SSL certificate directory
+  - Database backup directory
+
+
+STEP 1.3: Verify Environment Configuration
+───────────────────────────────────────────
+$ cat .env.webvale | grep -v "^#" | head -20
+
+Required variables to verify:
+  ✓ DATABASE_URL set
+  ✓ REDIS_PASSWORD set
+  ✓ JWT_SECRET set
+  ✓ SENDGRID_API_KEY set
+  ✓ AWS_ACCESS_KEY_ID set
+  ✓ STRIPE_SECRET_KEY set
+  ✓ RAZORPAY_KEY_ID set
+  ✓ Admin credentials set
+
+
+STEP 1.4: Update Sensitive Credentials
+──────────────────────────────────────
+$ nano .env.webvale
+
+Find and update these PRODUCTION values:
+  - SENDGRID_API_KEY → Your actual SendGrid key
+  - RAZORPAY_KEY_ID → Your Razorpay Key ID
+  - RAZORPAY_KEY_SECRET → Your Razorpay Secret
+  - STRIPE_SECRET_KEY → Your Stripe Secret Key
+  - AWS_ACCESS_KEY_ID → Your AWS Access Key
+  - AWS_SECRET_ACCESS_KEY → Your AWS Secret Key
+  - All other "REPLACE_WITH_" values
+
+SECURITY: Never commit .env.webvale to version control
+
+
+================================================================================
+PHASE 2: SSL/TLS CERTIFICATE SETUP (15 MINUTES)
+================================================================================
+
+OPTION A: Using Let's Encrypt (Recommended for Production)
+──────────────────────────────────────────────────────────
+
+1. Install certbot:
+   $ sudo apt-get update
+   $ sudo apt-get install -y certbot python3-certbot-nginx
+
+2. Configure DNS to point to your server first, then:
+   $ sudo ./deploy-webvale.sh letsencrypt thewebvale.com
+
+3. Verify certificates were installed:
+   $ ls -la ssl/certificates/
+   
+   Expected files:
+   ✓ cert.pem (certificate)
+   ✓ key.pem (private key)
+   ✓ dhparam.pem (Diffie-Hellman parameters)
+
+
+OPTION B: Using Self-Signed Certificates (Testing Only)
+────────────────────────────────────────────────────────
+
+$ sudo ./deploy-webvale.sh ssl
+
+Expected output:
+✓ SSL certificates generated
+
+WARNING: Self-signed certificates will show browser warnings.
+Replace with Let's Encrypt or commercial certificates before production.
+
+
+================================================================================
+PHASE 3: DOCKER IMAGE BUILDING (20-30 MINUTES)
+================================================================================
+
+STEP 3.1: Build All Docker Images
+──────────────────────────────────
+$ sudo ./deploy-webvale.sh build
+
+Expected output:
+[+] Building 200.5s (15/15) FINISHED
+✓ Docker images built successfully
+
+This builds:
+  ✓ webvale/backend:latest
+  ✓ webvale/frontend:latest
+  ✓ webvale/admin:latest
+  ✓ postgres:15-alpine (pulls from registry)
+  ✓ redis:7-alpine (pulls from registry)
+  ✓ nginx:alpine (pulls from registry)
+
+
+STEP 3.2: Verify Images Built Successfully
+────────────────────────────────────────────
+$ docker images | grep webvale
+
+Expected output:
+webvale/backend    latest    5d2f8e9c0e4a    2 seconds ago    450MB
+webvale/frontend   latest    3e1f7d8c0a2b    5 seconds ago    380MB
+webvale/admin      latest    2c0e6d7b1a3c    8 seconds ago    350MB
+
+
+================================================================================
+PHASE 4: DATABASE INITIALIZATION (10 MINUTES)
+================================================================================
+
+STEP 4.1: Start Database Services Only
+───────────────────────────────────────
+$ docker-compose -f docker-compose.webvale.yml up -d postgres redis
+
+Expected output:
+✓ postgres container is healthy
+✓ redis container is healthy
+
+
+STEP 4.2: Initialize Database Schema
+─────────────────────────────────────
+Database initialization happens automatically via:
+  - init.sql is executed on first PostgreSQL startup
+  - Creates all tables, indexes, and views
+  - Sets up triggers for updated_at timestamps
+  - Creates initial admin user
+
+To verify:
+$ docker exec webvale-postgres-prod psql -U webvale_app -d webvale_production -c "\dt"
+
+Expected output:
+         List of relations
+ Schema |     Name      | Type  | Owner
+────────────────────────────────────────
+ public | users         | table | webvale_app
+ public | organizations | table | webvale_app
+ public | cases         | table | webvale_app
+ public | documents     | table | webvale_app
+ public | tasks         | table | webvale_app
+ ... (and more tables)
+
+
+STEP 4.3: Verify Database Connection
+──────────────────────────────────────
+$ docker exec webvale-postgres-prod psql -U webvale_app -d webvale_production -c "SELECT COUNT(*) FROM users;"
+
+Expected output:
+ count
+───────
+     1 (initial admin user)
+
+
+================================================================================
+PHASE 5: FULL DEPLOYMENT (10 MINUTES)
+================================================================================
+
+STEP 5.1: Start All Services
+─────────────────────────────
+$ sudo ./deploy-webvale.sh start
+
+Expected output:
+[INFO] Starting services...
+[INFO] Waiting for services to become healthy...
+[SUCCESS] All services started and healthy
+
+This starts:
+  ✓ PostgreSQL Database
+  ✓ Redis Cache
+  ✓ Backend API
+  ✓ Frontend
+  ✓ Admin Panel
+  ✓ Nginx Reverse Proxy
+
+
+STEP 5.2: Verify Service Status
+────────────────────────────────
+$ sudo ./deploy-webvale.sh status
+
+Expected output:
+webvale-postgres-prod       Up      5432/tcp
+webvale-redis-prod          Up      6379/tcp
+webvale-backend-prod        Up      5000/tcp
+webvale-frontend-prod       Up      3000/tcp
+webvale-admin-prod          Up      3001/tcp
+webvale-nginx-prod          Up      80/tcp, 443/tcp
+
+
+STEP 5.3: Perform Health Checks
+────────────────────────────────
+$ sudo ./deploy-webvale.sh health
+
+Expected output:
+[INFO] Checking PostgreSQL...
+[SUCCESS] PostgreSQL is healthy
+
+[INFO] Checking Redis...
+[SUCCESS] Redis is healthy
+
+[INFO] Checking Backend API...
+[SUCCESS] Backend API is healthy
+
+[INFO] Checking Frontend...
+[SUCCESS] Frontend is healthy
+
+[INFO] Checking Admin Panel...
+[SUCCESS] Admin Panel is healthy
+
+[INFO] Checking Nginx...
+[SUCCESS] Nginx is healthy
+
+[SUCCESS] All health checks passed
+
+
+================================================================================
+PHASE 6: VERIFICATION & TESTING (15 MINUTES)
+================================================================================
+
+STEP 6.1: Test Frontend Application
+────────────────────────────────────
+$ curl -s http://localhost:3000 | head -20
+
+Expected: HTML content of React SPA
+
+
+STEP 6.2: Test Backend API
+──────────────────────────
+$ curl -s http://localhost:5000/health | jq .
+
+Expected output:
+{
+  "status": "ok",
+  "timestamp": "2026-08-28T12:00:00Z",
+  "uptime": 45.123
+}
+
+
+STEP 6.3: Test Admin Panel
+───────────────────────────
+$ curl -s http://localhost:3001 | head -20
+
+Expected: HTML content of Admin SPA
+
+
+STEP 6.4: Test Nginx Reverse Proxy
+───────────────────────────────────
+$ curl -s http://localhost/health
+
+Expected: OK
+
+
+STEP 6.5: Verify SSL/TLS Configuration
+────────────────────────────────────────
+$ openssl s_client -connect localhost:443 -showcerts < /dev/null
+
+Expected:
+✓ TLS version 1.2 or 1.3
+✓ Certificate chain visible
+✓ No SSL errors
+
+
+STEP 6.6: Test API Endpoints
+──────────────────────────────
+# Test health endpoint
+$ curl -s http://localhost:5000/api/health | jq .
+
+# Test CORS
+$ curl -s -H "Origin: http://localhost:3000" http://localhost:5000/api/health
+
+# Test rate limiting
+$ for i in {1..100}; do curl -s http://localhost:5000/api/health > /dev/null; done
+$ curl -s http://localhost:5000/api/health
+
+Expected: Some requests should get rate-limit responses (429)
+
+
+================================================================================
+PHASE 7: SECURITY HARDENING (20 MINUTES)
+================================================================================
+
+STEP 7.1: Verify Security Headers
+──────────────────────────────────
+$ curl -sI http://localhost | grep -i "strict-transport-security\|x-frame-options\|x-content-type-options"
+
+Expected headers present:
+  ✓ Strict-Transport-Security: max-age=31536000
+  ✓ X-Frame-Options: SAMEORIGIN
+  ✓ X-Content-Type-Options: nosniff
+  ✓ Content-Security-Policy: ...
+
+
+STEP 7.2: Configure Firewall Rules
+──────────────────────────────────
+$ sudo ufw allow 22/tcp      # SSH
+$ sudo ufw allow 80/tcp      # HTTP
+$ sudo ufw allow 443/tcp     # HTTPS
+$ sudo ufw enable
+
+Verify:
+$ sudo ufw status
+
+Expected:
+  80/tcp    ALLOW      Anywhere
+  443/tcp   ALLOW      Anywhere
+  22/tcp    ALLOW      Anywhere
+
+
+STEP 7.3: Verify JWT Secrets & Encryption
+──────────────────────────────────────────
+Check in .env.webvale:
+  ✓ JWT_SECRET is 32+ chars and secure
+  ✓ SESSION_SECRET is 32+ chars and secure
+  ✓ ENCRYPTION_KEY is 32+ chars and secure
+  ✓ Database passwords are 24+ chars
+  ✓ Redis passwords are 16+ chars
+
+
+STEP 7.4: Enable Rate Limiting
+───────────────────────────────
+Verify in nginx.webvale.conf:
+  ✓ General rate limit: 30 req/s
+  ✓ API rate limit: 10 req/s
+  ✓ Auth rate limit: 5 req/min
+  ✓ Upload rate limit: 2 req/min
+
+
+STEP 7.5: Verify CORS Configuration
+───────────────────────────────────
+Check in .env.webvale:
+  CORS_ORIGINS=https://advocate-legal.thewebvale.com,https://admin.advocate-legal.thewebvale.com
+
+Test CORS:
+$ curl -s -H "Origin: https://advocate-legal.thewebvale.com" \
+  -H "Access-Control-Request-Method: POST" \
+  http://localhost/api/
+
+Expected:
+  Access-Control-Allow-Origin: https://advocate-legal.thewebvale.com
+
+
+================================================================================
+PHASE 8: BACKUP CONFIGURATION (10 MINUTES)
+================================================================================
+
+STEP 8.1: Create Initial Backup
+────────────────────────────────
+$ sudo ./deploy-webvale.sh backup
+
+Expected output:
+[INFO] Backing up PostgreSQL database...
+[SUCCESS] Database backup completed: /home/opc/lawyer-platform/deployment/backups/database_backup_20260828_120000.sql.gz
+[SUCCESS] Backup completed successfully (Size: 2.5M)
+
+
+STEP 8.2: Verify Backup Created
+────────────────────────────────
+$ sudo ./deploy-webvale.sh backups
+
+Expected output:
+Available backups:
+/home/opc/lawyer-platform/deployment/backups/database_backup_20260828_120000.sql.gz (2.5M)
+
+
+STEP 8.3: Setup Automated Backup Cron Job
+──────────────────────────────────────────
+$ sudo crontab -e
+
+Add line:
+0 2 * * * cd /home/opc/lawyer-platform/deployment && sudo ./deploy-webvale.sh backup >> /var/log/webvale-backup.log 2>&1
+
+This runs backup every day at 2 AM
+
+
+STEP 8.4: Verify Backup Retention Policy
+──────────────────────────────────────────
+The deploy script automatically:
+  ✓ Keeps backups for 30 days
+  ✓ Deletes older backups
+  ✓ Maintains daily, weekly, monthly backups
+
+
+================================================================================
+PHASE 9: MONITORING & LOGGING (15 MINUTES)
+================================================================================
+
+STEP 9.1: View Application Logs
+────────────────────────────────
+$ sudo ./deploy-webvale.sh logs backend 100
+$ sudo ./deploy-webvale.sh logs frontend 50
+$ sudo ./deploy-webvale.sh logs nginx 100
+
+
+STEP 9.2: Monitor System Resources
+──────────────────────────────────
+$ docker stats
+
+Expected output:
+CONTAINER              CPU %    MEM USAGE / LIMIT
+webvale-backend-prod   2.5%     180MiB / 4GiB
+webvale-postgres-prod  1.2%     250MiB / 4GiB
+webvale-nginx-prod     0.1%     15MiB / 4GiB
+
+
+STEP 9.3: Setup Prometheus Monitoring
+───────────────────────────────────────
+Optional: Enable Prometheus in .env.webvale:
+  PROMETHEUS_ENABLED=true
+
+Then access metrics at:
+  http://localhost:9090/metrics
+
+
+STEP 9.4: Setup Sentry Error Tracking
+───────────────────────────────────────
+Optional: Configure in .env.webvale:
+  SENTRY_DSN=https://your_sentry_dsn@sentry.io/project_id
+  SENTRY_ENVIRONMENT=production
+
+
+================================================================================
+PHASE 10: POST-DEPLOYMENT VERIFICATION (10 MINUTES)
+================================================================================
+
+STEP 10.1: Verify Domain Configuration
+────────────────────────────────────────
+$ dig thewebvale.com +short
+$ dig *.thewebvale.com +short
+
+Expected: Server IP address
+
+
+STEP 10.2: Test Production DNS
+───────────────────────────────
+$ curl -sI https://thewebvale.com | head -10
+$ curl -sI https://api.thewebvale.com/api/health
+
+Expected:
+  ✓ HTTP/2 200
+  ✓ SSL certificate valid
+  ✓ Security headers present
+
+
+STEP 10.3: Login to Admin Panel
+────────────────────────────────
+Visit: https://admin.thewebvale.com
+Login with:
+  Email: admin@thewebvale.com
+  Password: [from .env.webvale ADMIN_DEFAULT_PASSWORD]
+
+Expected:
+  ✓ Dashboard loads
+  ✓ No console errors
+  ✓ Authenticated successfully
+
+
+STEP 10.4: Create Test Organization
+──────────────────────────────────────
+1. Log into admin panel
+2. Create new organization: "Test Legal Firm"
+3. Subdomain: "test-firm"
+4. Verify subdomain works: https://test-firm.thewebvale.com
+
+Expected:
+  ✓ Organization created
+  ✓ Subdomain accessible
+  ✓ Dedicated instance works
+
+
+STEP 10.5: Test File Upload
+─────────────────────────────
+In frontend app:
+  1. Create a case
+  2. Try uploading a document
+
+Expected:
+  ✓ File uploaded successfully
+  ✓ File stored in S3
+  ✓ Download works
+
+
+STEP 10.6: Verify Email Service
+────────────────────────────────
+In admin panel:
+  1. Create a user
+  2. Verify confirmation email is received
+
+Expected:
+  ✓ Email sent within 30 seconds
+  ✓ Email contains correct information
+  ✓ Links are correct
+
+
+================================================================================
+ONGOING MAINTENANCE
+================================================================================
+
+DAILY TASKS:
+✓ Check health: sudo ./deploy-webvale.sh health
+✓ Monitor logs: sudo ./deploy-webvale.sh logs
+✓ Verify backups: sudo ./deploy-webvale.sh backups
+
+WEEKLY TASKS:
+✓ Review logs for errors or anomalies
+✓ Check disk space: df -h
+✓ Review resource usage: docker stats
+✓ Test backup restore process: sudo ./deploy-webvale.sh restore [latest_backup]
+
+MONTHLY TASKS:
+✓ Update OS packages: sudo apt-get update && sudo apt-get upgrade
+✓ Review security logs
+✓ Verify SSL certificate expiration: openssl x509 -in ssl/certificates/cert.pem -noout -dates
+✓ Performance tuning review
+✓ Database optimization: VACUUM ANALYZE;
+
+QUARTERLY TASKS:
+✓ Disaster recovery drill
+✓ Security audit
+✓ Load testing
+✓ Documentation review
+
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+ISSUE: Services won't start
+SOLUTION:
+  1. Check logs: sudo ./deploy-webvale.sh logs
+  2. Verify environment variables: cat .env.webvale
+  3. Check disk space: df -h
+  4. Check memory: free -h
+  5. Restart Docker: sudo systemctl restart docker
+
+ISSUE: Database won't connect
+SOLUTION:
+  1. Verify PostgreSQL is running: docker ps | grep postgres
+  2. Check logs: sudo ./deploy-webvale.sh logs postgres 100
+  3. Verify password in .env.webvale
+  4. Check database exists: docker exec webvale-postgres-prod psql -U webvale_app -l
+
+ISSUE: SSL certificate error
+SOLUTION:
+  1. Verify certificate files: ls -la ssl/certificates/
+  2. Check certificate expiration: openssl x509 -in ssl/certificates/cert.pem -noout -text
+  3. Renew Let's Encrypt: certbot renew --force-renewal
+  4. Restart Nginx: docker-compose -f docker-compose.webvale.yml restart nginx
+
+ISSUE: Out of disk space
+SOLUTION:
+  1. Clean up old logs: sudo find ./logs -mtime +30 -delete
+  2. Prune unused Docker images: docker image prune -a
+  3. Remove old backups: sudo find ./backups -mtime +30 -delete
+  4. Check large files: du -sh ./* | sort -h | tail -10
+
+ISSUE: High CPU usage
+SOLUTION:
+  1. Check which container: docker stats
+  2. View logs: sudo ./deploy-webvale.sh logs [container_name]
+  3. Check query performance: database logs
+  4. Scale resources: Update docker-compose.webvale.yml
+
+
+================================================================================
+QUICK REFERENCE
+================================================================================
+
+START/STOP OPERATIONS:
+$ sudo ./deploy-webvale.sh start      # Start all services
+$ sudo ./deploy-webvale.sh stop       # Stop all services
+$ sudo ./deploy-webvale.sh restart    # Restart all services
+$ sudo ./deploy-webvale.sh status     # Check status
+
+HEALTH & MONITORING:
+$ sudo ./deploy-webvale.sh health     # Run health checks
+$ sudo ./deploy-webvale.sh logs       # View all logs
+$ docker stats                        # View resource usage
+
+BACKUP & RECOVERY:
+$ sudo ./deploy-webvale.sh backup     # Create backup
+$ sudo ./deploy-webvale.sh backups    # List backups
+$ sudo ./deploy-webvale.sh restore <file>  # Restore backup
+
+MAINTENANCE:
+$ sudo ./deploy-webvale.sh maintenance enable   # Enable maintenance mode
+$ sudo ./deploy-webvale.sh maintenance disable  # Disable maintenance mode
+
+
+================================================================================
+SUPPORT & CONTACT
+================================================================================
+
+Documentation: See DEPLOYMENT_*.md files in deployment/ directory
+Issues: Check logs and run health checks
+Emergency: Restore from latest backup
+
+
+Generated: 2026-08-28
+Last Updated: 2026-08-28
+Status: Production Ready ✓
+================================================================================

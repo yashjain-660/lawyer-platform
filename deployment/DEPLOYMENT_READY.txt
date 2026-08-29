@@ -1,0 +1,136 @@
+# The Web Vale - Quick Start Deployment Guide
+
+## Quick Navigation
+
+- **Total Setup Time**: ~2.5 hours
+- **Automated Steps**: ~90% (only credentials needed)
+- **Manual Configuration**: ~10% (SSL, DNS, env vars)
+
+## Prerequisites Check (5 minutes)
+
+```bash
+# Run this on your production server
+docker --version          # Docker 20.10+
+docker-compose --version # Docker Compose 2.0+
+curl --version           # Latest version
+which git               # Git installed
+```
+
+## Quick Start (90 seconds)
+
+```bash
+# 1. Navigate to deployment directory
+cd /home/opc/lawyer-platform/deployment
+
+# 2. Update environment variables
+nano .env.webvale
+# Add your API keys, passwords, and credentials
+
+# 3. Setup directories and prerequisites
+sudo ./deploy-webvale.sh setup
+
+# 4. Create SSL certificates
+sudo ./deploy-webvale.sh ssl
+# OR for Let's Encrypt (recommended):
+sudo ./deploy-webvale.sh letsencrypt thewebvale.com
+
+# 5. Build Docker images
+sudo ./deploy-webvale.sh build
+
+# 6. Start all services
+sudo ./deploy-webvale.sh start
+
+# 7. Verify health
+sudo ./deploy-webvale.sh health
+```
+
+## Access After Deployment
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Frontend | https://thewebvale.com | N/A |
+| API | https://api.thewebvale.com/api | API Key |
+| Admin | https://admin.thewebvale.com | admin@thewebvale.com / [password] |
+| Health | https://api.thewebvale.com/health | N/A |
+
+## What Gets Deployed
+
+- ✓ PostgreSQL Database (persistent)
+- ✓ Redis Cache (persistent)
+- ✓ Backend API (Node.js/Express)
+- ✓ Frontend App (React)
+- ✓ Admin Panel (React)
+- ✓ Nginx Reverse Proxy with SSL/TLS
+
+## Critical Environment Variables
+
+```
+DATABASE_URL              # PostgreSQL connection string
+JWT_SECRET               # For token signing (32+ chars)
+SESSION_SECRET           # For sessions (32+ chars)
+REDIS_PASSWORD           # For cache authentication
+SENDGRID_API_KEY        # Email service
+STRIPE_SECRET_KEY       # Payment processing
+AWS_ACCESS_KEY_ID       # S3 storage
+ADMIN_EMAIL             # Admin account email
+ADMIN_PASSWORD          # Initial admin password (24+ chars)
+```
+
+## Daily Operations
+
+```bash
+# Check health
+sudo ./deploy-webvale.sh health
+
+# View logs
+sudo ./deploy-webvale.sh logs backend 100
+
+# Create backup
+sudo ./deploy-webvale.sh backup
+
+# List backups
+sudo ./deploy-webvale.sh backups
+
+# Restart services
+sudo ./deploy-webvale.sh restart
+```
+
+## Troubleshooting
+
+**Services won't start?**
+```bash
+sudo ./deploy-webvale.sh logs        # Check what's wrong
+df -h                                # Check disk space
+free -h                              # Check memory
+```
+
+**Database won't connect?**
+```bash
+docker ps                            # Is postgres running?
+docker exec webvale-postgres-prod psql -U webvale_app -c "SELECT 1"
+```
+
+**SSL certificate issues?**
+```bash
+openssl x509 -in ssl/certificates/cert.pem -noout -text
+sudo ./deploy-webvale.sh letsencrypt thewebvale.com  # Renew
+```
+
+## Next Steps
+
+1. **Complete Setup**: Follow DEPLOYMENT_MASTER.txt for detailed steps
+2. **Verify**: Run all tests in DEPLOYMENT_CHECKLIST.md
+3. **Monitor**: Set up monitoring as described in DEPLOYMENT_SUMMARY.md
+4. **Backup**: Configure daily backups with cron job
+
+## Support
+
+- Detailed docs: See other DEPLOYMENT_*.md files
+- Full checklist: DEPLOYMENT_CHECKLIST.md
+- Architecture: DEPLOYMENT_SUMMARY.md
+- Deep dive: DEPLOYMENT_WEBVALE.md
+
+---
+
+**Status**: Production Ready ✓
+**Generated**: 2026-08-28
